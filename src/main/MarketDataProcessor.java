@@ -80,7 +80,6 @@ public class MarketDataProcessor implements Runnable{
 	public void run() {
 		if(counter < 100 && !queue.isEmpty())
 		{
-			System.out.println("Scene 1");
 			if(counter == 0)
 			{
 				windowFrameStart = LocalDateTime.now();
@@ -107,14 +106,12 @@ public class MarketDataProcessor implements Runnable{
 			latestMarketData = queue.peek();
 			if(checkTimeFrame(windowFrameStart,LocalDateTime.now()))
 			{
-				System.out.println("Scene 2");
 				pollAndSend();
 				counter = 1;
 				windowFrameStart = LocalDateTime.now();
 			}
 			else
 			{
-				System.out.println("Scene 3");
 				try
 				{
 					Thread.sleep(checkIntevalDiff(windowFrameStart,LocalDateTime.now()));
