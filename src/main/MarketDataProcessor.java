@@ -92,6 +92,10 @@ public class MarketDataProcessor implements Runnable{
 				pollAndSend();
 				
 			}
+			else
+			{
+				queue.poll();
+			}
 			counter++;
 			//else
 			//{
