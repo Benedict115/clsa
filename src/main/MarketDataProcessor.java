@@ -33,7 +33,8 @@ public class MarketDataProcessor implements Runnable{
 	public boolean checkTimeFrame(LocalDateTime from, LocalDateTime to)
 	{
 		long windowFrame = 1000; //millisecond
-		long inteval = Duration.between(from, to).toMillis();
+		long inteval = Math.abs(Duration.between(from, to).toMillis());
+		System.out.println(inteval + "ms");
 		/*
 		 * true = outside window frame, can add new entry
 		 * false = inside same window frame, trigger throttle control
@@ -49,6 +50,13 @@ public class MarketDataProcessor implements Runnable{
 		return Math.abs(inteval - windowFrame);
 	}
 	
+	public long checkSymbolUpdateDiff(LocalDateTime from, LocalDateTime to)
+	{
+		long inteval = Duration.between(from, to).toMillis();
+		//System.out.println(inteval + "ms");
+		return Math.abs(inteval);
+	}
+	
 	public boolean checkSymbolupdate(MarketData data)
 	{
 		/*
@@ -61,7 +69,7 @@ public class MarketDataProcessor implements Runnable{
 		}
 		else
 		{
-			if(checkIntevalDiff(data.getUpdateTime(),symbolMap.get(data.getSymbol())) > 1000)
+			if(checkSymbolUpdateDiff(symbolMap.get(data.getSymbol()), LocalDateTime.now()) > 1000)
 				return true;
 			else
 				return false;
@@ -72,6 +80,7 @@ public class MarketDataProcessor implements Runnable{
 	public void run() {
 		if(counter < 100 && !queue.isEmpty())
 		{
+			System.out.println("Scene 1");
 			if(counter == 0)
 			{
 				windowFrameStart = LocalDateTime.now();
@@ -81,23 +90,30 @@ public class MarketDataProcessor implements Runnable{
 			if(checkSymbolupdate(latestMarketData))
 			{
 				pollAndSend();
-				counter++;
+				
 			}
+			counter++;
+			//else
+			//{
+				//queue.poll();
+			//}
 		}
 		else
 		{
 			latestMarketData = queue.peek();
-			if(checkTimeFrame(windowFrameStart,latestMarketData.getUpdateTime()) && checkSymbolupdate(latestMarketData))
+			if(checkTimeFrame(windowFrameStart,LocalDateTime.now()))
 			{
+				System.out.println("Scene 2");
 				pollAndSend();
 				counter = 1;
 				windowFrameStart = LocalDateTime.now();
 			}
 			else
 			{
+				System.out.println("Scene 3");
 				try
 				{
-					Thread.sleep(checkIntevalDiff(windowFrameStart,latestMarketData.getUpdateTime()));
+					Thread.sleep(checkIntevalDiff(windowFrameStart,LocalDateTime.now()));
 					counter = 0;
 					windowFrameStart = LocalDateTime.now();
 				} catch (Exception e)
@@ -119,7 +135,7 @@ public class MarketDataProcessor implements Runnable{
 	public static void main (String args[])
 	{
 		MarketDataProcessor marketDataProcessor = new MarketDataProcessor();
-		ExecutorService executorService = Executors.newFixedThreadPool(10);
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
 		
 		System.out.println("main called");
 		try {
