@@ -27,7 +27,7 @@ public class MarketDataTest {
 		}
 		marketDataProcessor.onMessage(testData);
 		
-		ExecutorService executorService = Executors.newFixedThreadPool(10);
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
 		
 		while(true)
 		{
