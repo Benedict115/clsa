@@ -34,7 +34,6 @@ public class MarketDataProcessor implements Runnable{
 	{
 		long windowFrame = 1000; //millisecond
 		long inteval = Math.abs(Duration.between(from, to).toMillis());
-		System.out.println(inteval + "ms");
 		/*
 		 * true = outside window frame, can add new entry
 		 * false = inside same window frame, trigger throttle control
@@ -83,23 +82,17 @@ public class MarketDataProcessor implements Runnable{
 			if(counter == 0)
 			{
 				windowFrameStart = LocalDateTime.now();
-				//System.out.println("initialize");
 			}
 			latestMarketData = queue.peek();
 			if(checkSymbolupdate(latestMarketData))
 			{
-				pollAndSend();
-				
+				pollAndSend();				
 			}
 			else
 			{
 				queue.poll();
 			}
 			counter++;
-			//else
-			//{
-				//queue.poll();
-			//}
 		}
 		else
 		{
@@ -130,6 +123,8 @@ public class MarketDataProcessor implements Runnable{
 		publishAggregatedMarketData(latestMarketData);
 		symbolMap.put(latestMarketData.getSymbol(), LocalDateTime.now());
 		queue.poll();
+		
+		//In console will print out the Symbol + Price + Sending time
 		System.out.println("Sent data: " + latestMarketData.getSymbol() + " " + latestMarketData.getPrice() + " " + LocalDateTime.now());
 	}
 	
@@ -143,7 +138,6 @@ public class MarketDataProcessor implements Runnable{
 			while(true)
 			{
 				executorService.submit(marketDataProcessor);
-				Thread.sleep(10);
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
