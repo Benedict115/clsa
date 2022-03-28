@@ -12,7 +12,7 @@ import main.MarketDataProcessor;
 public class MarketDataTest {
 
 	@Test
-	public void testSingleOnMessage()
+	public void testSingleOnMessage() throws InterruptedException
 	{
 		MarketData testData = new MarketData();
 		MarketDataProcessor marketDataProcessor = new MarketDataProcessor();
@@ -28,16 +28,13 @@ public class MarketDataTest {
 		marketDataProcessor.onMessage(testData);
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(10);
-		try {
-			while(true)
-			{
-				executorService.submit(marketDataProcessor);
-				Thread.sleep(10);
-			}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		
+		while(true)
+		{
+			executorService.submit(marketDataProcessor);
+
 		}
+		
 	}
 	
 	@Test
@@ -52,18 +49,40 @@ public class MarketDataTest {
 			testData.setSymbol("0100");
 			testData.setUpdateTime(LocalDateTime.now());			
 			marketDataProcessor.onMessage(testData);
+			//Thread.sleep(1000);
 		}
 		
-		ExecutorService executorService = Executors.newFixedThreadPool(10);
-		try {
-			while(true)
-			{
-				executorService.submit(marketDataProcessor);
-				//Thread.sleep(1000);
-			}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
+		
+		while(true)
+		{
+			executorService.submit(marketDataProcessor);
+		}		
+	}
+	
+	@Test
+	public void testMultipleOnMessageWithDifferentSymbol() throws InterruptedException
+	{
+		
+		MarketDataProcessor marketDataProcessor = new MarketDataProcessor();
+		
+		int symbolCode = 100;
+		
+		for (int i=0; i<250; i++)
+		{
+			MarketData testData = new MarketData();
+			int currentSymbol = symbolCode + i;
+			testData.setPrice(i + 100.0);
+			testData.setSymbol("0" + currentSymbol);
+			testData.setUpdateTime(LocalDateTime.now());			
+			marketDataProcessor.onMessage(testData);
+		}
+
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
+		
+		while(true)
+		{
+			executorService.submit(marketDataProcessor);			
 		}
 	}
 }
