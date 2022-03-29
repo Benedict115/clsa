@@ -14,7 +14,8 @@ public class MarketDataProcessor implements Runnable{
 	private Map<String, LocalDateTime> symbolMap = new HashMap<String, LocalDateTime>();
 	private LocalDateTime windowFrameStart;
 	private MarketData latestMarketData;
-	private int counter = 0;	
+	private int counter = 0;
+	private static final Object lock = new Object();
 	
 	// Receive incoming market data
 	public void onMessage(MarketData data) {
@@ -45,14 +46,12 @@ public class MarketDataProcessor implements Runnable{
 	{
 		long windowFrame = 1000; //millisecond
 		long inteval = Duration.between(from, to).toMillis();
-		//System.out.println(inteval + "ms");
 		return Math.abs(inteval - windowFrame);
 	}
 	
 	public long checkSymbolUpdateDiff(LocalDateTime from, LocalDateTime to)
 	{
 		long inteval = Duration.between(from, to).toMillis();
-		//System.out.println(inteval + "ms");
 		return Math.abs(inteval);
 	}
 	
@@ -77,46 +76,49 @@ public class MarketDataProcessor implements Runnable{
 
 	@Override
 	public void run() {
-		if(counter < 100 && !queue.isEmpty())
-		{
-			if(counter == 0)
+		synchronized(lock)
+		{		
+			if(counter < 100 && !queue.isEmpty())
 			{
-				windowFrameStart = LocalDateTime.now();
-			}
-			latestMarketData = queue.peek();
-			if(checkSymbolupdate(latestMarketData))
-			{
-				pollAndSend();				
-			}
-			else
-			{
-				queue.poll();
-			}
-			counter++;
-		}
-		else
-		{
-			latestMarketData = queue.peek();
-			if(checkTimeFrame(windowFrameStart,LocalDateTime.now()))
-			{
-				pollAndSend();
-				counter = 1;
-				windowFrameStart = LocalDateTime.now();
-			}
-			else
-			{
-				try
+				if(counter == 0)
 				{
-					Thread.sleep(checkIntevalDiff(windowFrameStart,LocalDateTime.now()));
-					counter = 0;
 					windowFrameStart = LocalDateTime.now();
-				} catch (Exception e)
+				}
+				latestMarketData = queue.peek();
+				if(checkSymbolupdate(latestMarketData))
 				{
-					e.printStackTrace();
+					pollAndSend();				
+				}
+				else
+				{
+					queue.poll();
+				}
+				counter++;
+			}
+		
+			else
+			{
+				latestMarketData = queue.peek();
+				if(checkTimeFrame(windowFrameStart,LocalDateTime.now()))
+				{
+					pollAndSend();
+					counter = 1;
+					windowFrameStart = LocalDateTime.now();
+				}
+				else
+				{
+					try
+					{
+						Thread.sleep(checkIntevalDiff(windowFrameStart,LocalDateTime.now()));
+						counter = 0;
+						windowFrameStart = LocalDateTime.now();
+					} catch (Exception e)
+					{
+						e.printStackTrace();
+					}
 				}
 			}
-		}
-		
+		}		
 	}
 
 	public void pollAndSend() {
