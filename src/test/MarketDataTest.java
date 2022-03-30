@@ -71,7 +71,7 @@ public class MarketDataTest {
 	public void testMultipleOnMessageWithSameSymbolWithDifferentPrice() throws InterruptedException
 	{
 		/*
-		 * Same symbol 0100 with price from 100.0 to 300.0, expected sends out 199.0 (1st frame), 299.0 (2nd frame) and 300.0 (last frame)
+		 * Same symbol 0100 with price from 100.0 to 300.0 (in order), expected sends out 199.0 (1st frame), 299.0 (2nd frame) and 300.0 (last frame)
 		 * 201 message
 		 */
 		MarketDataProcessor marketDataProcessor = new MarketDataProcessor();		
@@ -99,7 +99,7 @@ public class MarketDataTest {
 	public void testMultipleOnMessageWithDifferentSymbol() throws InterruptedException
 	{
 		/*
-		 * Different symbol from 0100 to 0349 with price from 100.0 to 349.0
+		 * Different symbol from 0100 to 0349 with price from 100.0 to 349.0 (in order)
 		 * expected sends out 100 msg (1st frame), 100 msg (2nd frame) and 50 msg (last frame)
 		 * 250 message
 		 * message sent will not be in order
@@ -133,7 +133,7 @@ public class MarketDataTest {
 	public void testMultipleOnMessageWithDifferentSymbolHighLoading() throws InterruptedException
 	{
 		/*
-		 * Different symbol from 1000 to 1449 with price from 100.0 to 549.0
+		 * Different symbol from 1000 to 1449 with price from 100.0 to 549.0 (in order)
 		 * expected sends out 100 msg (1st, 2nd, 3rd, 4th frame) and 50 msg (last frame)
 		 * 450 message
 		 * message sent will not be in order
