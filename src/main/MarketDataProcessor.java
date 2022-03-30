@@ -27,6 +27,8 @@ public class MarketDataProcessor implements Runnable{
 	private MarketData latestMarketData;
 	//Lock for sychronizing multithreading
 	private static final Object lock = new Object();
+	//Window Frame interval
+	private static final long windowFrame = 1000;
 	
 	// Receive incoming market data
 	public void onMessage(MarketData data) {
@@ -85,7 +87,6 @@ public class MarketDataProcessor implements Runnable{
 	//Check if the interval is longer than window frame
 	public boolean checkTimeFrame(LocalDateTime from, LocalDateTime to)
 	{
-		long windowFrame = 1000; //millisecond
 		long inteval = Math.abs(Duration.between(from, to).toMillis());
 		/*
 		 * true = outside window frame, can add new entry
@@ -97,7 +98,6 @@ public class MarketDataProcessor implements Runnable{
 	//Deduce how long to wait for next window frame
 	public long checkIntevalDiff(LocalDateTime from, LocalDateTime to)
 	{
-		long windowFrame = 1000; //millisecond
 		long inteval = Duration.between(from, to).toMillis();
 		return Math.abs(inteval - windowFrame);
 	}
