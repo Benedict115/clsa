@@ -4,17 +4,26 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 
 public class MarketDataProcessor implements Runnable{
-	private ConcurrentLinkedQueue<MarketData> queue = new ConcurrentLinkedQueue<MarketData>();;
+	//Queue for storing all MarketData received upstream
+	private ConcurrentLinkedQueue<MarketData> queue = new ConcurrentLinkedQueue<MarketData>();
+	//Double-ended queue (use as Stack) for temporary store the MarketData for same window frame
+	private ConcurrentLinkedDeque<MarketData> tempStack = new ConcurrentLinkedDeque<MarketData>();
+	//Map for storing and checking same symbol
 	private Map<String, LocalDateTime> symbolMap = new HashMap<String, LocalDateTime>();
+	//Mark the start point of window frame
 	private LocalDateTime windowFrameStart;
-	private MarketData latestMarketData;
+	//counter for message in same window frame
 	private int counter = 0;
+	//tdd test variable to check if number of message sent is expected
+	private int sendMessageCount = 0;
+	//MarketData Obj to store the latest retrieved MarketData obj
+	private MarketData latestMarketData;
+	//Lock for sychronizing multithreading
 	private static final Object lock = new Object();
 	
 	// Receive incoming market data
@@ -30,78 +39,28 @@ public class MarketDataProcessor implements Runnable{
 	// Do Nothing, assume implemented.
 	}
 	
-	
-	public boolean checkTimeFrame(LocalDateTime from, LocalDateTime to)
-	{
-		long windowFrame = 1000; //millisecond
-		long inteval = Math.abs(Duration.between(from, to).toMillis());
-		/*
-		 * true = outside window frame, can add new entry
-		 * false = inside same window frame, trigger throttle control
-		 */
-		return (inteval > windowFrame)? true : false;
-	}
-	
-	public long checkIntevalDiff(LocalDateTime from, LocalDateTime to)
-	{
-		long windowFrame = 1000; //millisecond
-		long inteval = Duration.between(from, to).toMillis();
-		return Math.abs(inteval - windowFrame);
-	}
-	
-	public long checkSymbolUpdateDiff(LocalDateTime from, LocalDateTime to)
-	{
-		long inteval = Duration.between(from, to).toMillis();
-		return Math.abs(inteval);
-	}
-	
-	public boolean checkSymbolupdate(MarketData data)
-	{
-		/*
-		 * true = symbol update outside window frame, symbol can update.
-		 * false = inside same window frame, symbol should not update
-		 */
-		if(symbolMap.get(data.getSymbol()) == null)
-		{
-			return true;
-		}
-		else
-		{
-			if(checkSymbolUpdateDiff(symbolMap.get(data.getSymbol()), LocalDateTime.now()) > 1000)
-				return true;
-			else
-				return false;
-		}
-	}
-
 	@Override
 	public void run() {
 		synchronized(lock)
-		{		
+		{
+			if(counter == 0)
+			{
+				windowFrameStart = LocalDateTime.now();
+			}
 			if(counter < 100 && !queue.isEmpty())
 			{
-				if(counter == 0)
-				{
-					windowFrameStart = LocalDateTime.now();
-				}
-				latestMarketData = queue.peek();
-				if(checkSymbolupdate(latestMarketData))
-				{
-					pollAndSend();				
-				}
-				else
-				{
-					queue.poll();
-				}
+				latestMarketData = queue.poll();
+				tempStack.addFirst(latestMarketData);
 				counter++;
 			}
 		
 			else
-			{
+			{		
+				checkStackAndSend();
 				latestMarketData = queue.peek();
 				if(checkTimeFrame(windowFrameStart,LocalDateTime.now()))
 				{
-					pollAndSend();
+					tempStack.add(latestMarketData);
 					counter = 1;
 					windowFrameStart = LocalDateTime.now();
 				}
@@ -120,31 +79,76 @@ public class MarketDataProcessor implements Runnable{
 			}
 		}		
 	}
-
-	public void pollAndSend() {
-		publishAggregatedMarketData(latestMarketData);
-		symbolMap.put(latestMarketData.getSymbol(), LocalDateTime.now());
-		queue.poll();
-		
-		//In console will print out the Symbol + Price + Sending time
-		System.out.println("Sent data: " + latestMarketData.getSymbol() + " " + latestMarketData.getPrice() + " " + LocalDateTime.now());
+	
+	//Check if the interval is longer than window frame
+	public boolean checkTimeFrame(LocalDateTime from, LocalDateTime to)
+	{
+		long windowFrame = 1000; //millisecond
+		long inteval = Math.abs(Duration.between(from, to).toMillis());
+		/*
+		 * true = outside window frame, can add new entry
+		 * false = inside same window frame, trigger throttle control
+		 */
+		return (inteval > windowFrame)? true : false;
 	}
 	
-	public static void main (String args[])
+	//Deduce how long to wait for next window frame
+	public long checkIntevalDiff(LocalDateTime from, LocalDateTime to)
 	{
-		MarketDataProcessor marketDataProcessor = new MarketDataProcessor();
-		ExecutorService executorService = Executors.newSingleThreadExecutor();
-		
-		System.out.println("main called");
-		try {
-			while(true)
+		long windowFrame = 1000; //millisecond
+		long inteval = Duration.between(from, to).toMillis();
+		return Math.abs(inteval - windowFrame);
+	}
+	
+	//To check if same symbol data is being received inside same window frame
+	public boolean checkSymbolUpdate(MarketData data)
+	{
+		/*
+		 * true = symbol update outside window frame, symbol can update.
+		 * false = inside same window frame, symbol should not update
+		 */
+		if(symbolMap.get(data.getSymbol()) == null)
+		{
+			return true;
+		}
+		else
+		{
+			if(checkTimeFrame(symbolMap.get(data.getSymbol()), LocalDateTime.now()))
+				return true;
+			else
+				return false;
+		}
+	}	
+	
+	//Process the temporary stack
+	public void checkStackAndSend()
+	{
+		while (!tempStack.isEmpty())
+		{
+			MarketData stackMarketData = tempStack.poll();
+			if (checkSymbolUpdate(stackMarketData))
 			{
-				executorService.submit(marketDataProcessor);
+				send(stackMarketData);
+				setSendMessageCount(getSendMessageCount() + 1);
 			}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 	}
+	
+	//send out the data, and store the latest updated time for symbol sent
+	public void send(MarketData dataSend) {
+		publishAggregatedMarketData(dataSend);
+		
+		//In console will print out the Symbol + Price + Sending time
+		System.out.println("Sent data: " + dataSend.getSymbol() + " " + dataSend.getPrice() + " " + LocalDateTime.now());
+		symbolMap.put(dataSend.getSymbol(), LocalDateTime.now());	
+	}
+	
+	public int getSendMessageCount() {
+		return sendMessageCount;
+	}
 
+	public void setSendMessageCount(int sendMessageCount) {
+		this.sendMessageCount = sendMessageCount;
+	}
+	
 }
