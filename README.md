@@ -7,3 +7,6 @@ Assumption:
 
 Method to run the MarketDataProcessor:
 Firstly please compile for the code in src with command "javac MarketDataProcessor.java". Then please run by command "java MarketDataProcessor". It will start the non-stop threadpool for handling the incoming message. After that simply call the onMessage(MarketData) method to send the market data to MarketDataProcessor.
+
+Method to run the test case MarketDataTest:
+Suggest to run the test case one by one. This is because I have encountered a problem that the threadpool did not work if I run all the JUnit test at the same time.
