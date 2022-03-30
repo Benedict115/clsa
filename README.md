@@ -10,3 +10,20 @@ Firstly please compile for the code in src with command "javac MarketDataProcess
 
 Method to run the test case MarketDataTest:
 Suggest to run the test case one by one. This is because I have encountered a problem that the threadpool did not work if I run all the JUnit test at the same time.
+
+The console will output as the following:
+```
+onMessage Called 446
+onMessage Called 447
+onMessage Called 448
+onMessage Called 449
+onMessage Called 450
+Sent data: 1099 199.0 2022-03-30T19:09:10.813461200
+Sent data: 1098 198.0 2022-03-30T19:09:10.814459
+Sent data: 1097 197.0 2022-03-30T19:09:10.814459
+Sent data: 1096 196.0 2022-03-30T19:09:10.814459
+Sent data: 1095 195.0 2022-03-30T19:09:10.814459
+Sent data: 1094 194.0 2022-03-30T19:09:10.814459
+```
+1. The onMessage Called (number of message received for onMessage method).
+2. The Send data line indicate the sent symbol, price and publishAggregatedMarketData(MarketData) sending time.
