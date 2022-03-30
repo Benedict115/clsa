@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class MarketDataProcessor implements Runnable{
@@ -149,6 +151,15 @@ public class MarketDataProcessor implements Runnable{
 
 	public void setSendMessageCount(int sendMessageCount) {
 		this.sendMessageCount = sendMessageCount;
+	}
+	
+	public static void main(String args[])
+	{
+		MarketDataProcessor marketDataProcessor = new MarketDataProcessor();
+		ExecutorService executorService = Executors.newFixedThreadPool(100);	
+		while (true) {
+			executorService.submit(marketDataProcessor);			
+		}
 	}
 	
 }
