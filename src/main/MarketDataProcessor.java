@@ -74,7 +74,6 @@ public class MarketDataProcessor implements Runnable{
 					{
 						Thread.sleep(checkIntevalDiff(windowFrameStart,LocalDateTime.now()));
 						counter = 0;
-						windowFrameStart = LocalDateTime.now();
 					} catch (Exception e)
 					{
 						e.printStackTrace();
@@ -138,11 +137,10 @@ public class MarketDataProcessor implements Runnable{
 	
 	//send out the data, and store the latest updated time for symbol sent
 	public void send(MarketData dataSend) {
-		publishAggregatedMarketData(dataSend);
-		
+		symbolMap.put(dataSend.getSymbol(), LocalDateTime.now());
+		publishAggregatedMarketData(dataSend);		
 		//In console will print out the Symbol + Price + Sending time
 		System.out.println("Sent data: " + dataSend.getSymbol() + " " + dataSend.getPrice() + " " + LocalDateTime.now());
-		symbolMap.put(dataSend.getSymbol(), LocalDateTime.now());	
 	}
 	
 	public int getSendMessageCount() {
